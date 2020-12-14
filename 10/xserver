@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+import sys
+import json
+sys.path.insert(1, '../Fish')
+from Remote.server import FishServer
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2 or not sys.argv[1].isnumeric():
+        raise ValueError("Invalid command line arguments")
+    port = int(sys.argv[1])
+    server = FishServer()
+    result = server.run_server(port)
+    print(json.dumps(result))

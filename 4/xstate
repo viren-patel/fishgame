@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+import sys
+import os
+sys.path.append(os.path.abspath('../Fish/Common'))
+sys.path.append(os.path.abspath('../Fish'))
+from state import State, Game_Phase
+from tkinter import *
+import json
+
+north_move = lambda pos: (pos[0] - 2, pos[1])
+northeast_move = lambda pos: (pos[0] - 1, pos[1]) if pos[0] % 2 == 0 else (pos[0] - 1, pos[1] + 1)
+southeast_move = lambda pos: (pos[0] + 1, pos[1]) if pos[0] % 2 == 0 else (pos[0] + 1, pos[1] + 1)
+south_move = lambda pos: (pos[0] + 2, pos[1])
+southwest_move = lambda pos: (pos[0] + 1, pos[1] - 1) if pos[0] % 2 == 0 else (pos[0] + 1, pos[1] - 1)
+northwest_move = lambda pos: (pos[0] - 1, pos[1] - 1) if pos[0] % 2 == 0 else (pos[0] - 1, pos[1])
+
+possible_locations = [north_move, northeast_move, southeast_move, south_move, southwest_move, northwest_move]
+
+
+def try_moves(state, origin):
+    for location_change in possible_locations:
+        try:
+            dest = location_change(origin)
+            state.move_penguin(origin, dest)
+            return True
+        except:
+            pass
+    return False
+
+
+if __name__ == "__main__":
+    state_json = json.load(sys.stdin)
+    players = state_json['players']
+    board = state_json['board']
+    state = State(players, board)
+    first_player_pos = tuple(players[0]['places'][0])
+    state.game_phase = Game_Phase.PLAYING   
+
+    ret = state.prepare_json() if try_moves(state, first_player_pos) else False
+    print(json.dumps(ret))

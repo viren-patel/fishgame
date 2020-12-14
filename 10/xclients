@@ -1,0 +1,167 @@
+#!/usr/bin/python3
+import argparse
+import sys
+import json
+import socket
+import time
+from threading import Thread
+sys.path.insert(1, '../Fish')
+
+from Player.strategy import MinimaxStrategy
+from Common.game_tree import GameTreeNode
+from Common.state import State
+from Common.utils import parse_json
+
+CLIENT_DEPTH = 1
+DEFAULT_IP = '127.0.0.1'
+VOID_MSG = 'void'
+DEFAULT_NAME = 'viren'
+
+class Client:
+    def __init__(self, port, address, name):
+        self.socket = None
+        #send name here
+        self.strategy = MinimaxStrategy(CLIENT_DEPTH)
+        self.name = name
+        self.tree = None
+    
+    def connect(self, port, address):
+        """Connects the server at the specified port and address
+        """
+        self.socket = socket.create_connection((address, port))
+        self.send_data(self.name)
+
+    def handle_function_call(self, func, args):
+        """Handles a function call that came in from the server
+
+        Parameters:
+
+        func: str - the function name
+
+        args: list - the list of arguments for the function call
+
+        Output: bool - whether or not the tournament is still running
+        """
+        tournament_running = True
+        if func == "start":
+            self.send_void()
+        elif func == "playing-as":
+            self.send_void()
+        elif func == "playing-with":
+            self.send_void()
+        elif func == "setup":
+            self.handle_setup(args[0])
+        elif func == "take-turn":
+            self.handle_take_turn(args[0], args[1])
+        elif func == "end":
+            self.send_void()
+            tournament_running = False
+        else:
+            raise ValueError("Invalid function received")
+        
+        return tournament_running
+    
+    def send_data(self, data):
+        """Serializes the given data to json and sends it to the server
+
+        Parameters:
+
+        data: any - the data to be sent to the server
+    
+        """
+        self.socket.sendall(json.dumps(data).encode())
+    
+    def send_void(self):
+
+        """Sends a void message to the server
+        """
+        self.send_data(VOID_MSG)
+
+    def handle_setup(self, state):
+        """Handles the setup function call from the server. Sends a placement according to the zig-zag strategy
+
+        Parameters:
+
+        state: dict - State dictionary containing the board and players
+        """
+        self.send_data(self.strategy.get_placement(State(state['players'], state['board'])))
+    
+    def handle_take_turn(self, state, actions):
+        """Handles the take_turn function call. Sneds a Move according to the MinMax strategy.
+
+        Parameters:
+
+        state: dict: State dictionary containing the board and players
+
+        actions: list of Action - The actions that have taken place since this player's last turn
+        """
+        if self.tree is None:
+            self.tree = GameTreeNode(state)
+            self.tree.generate_tree()
+        state = self.tree.state
+
+        for action in actions:
+            state.move_penguin(action[0], action[1])
+        self.send_data(self.strategy.get_move(state))
+    
+    def listen_for_data(self):
+        """Listens for json data being sent by the server. Returns the data after converting from json
+
+        Output: json - the result after parsing the json
+        """
+        receiving = True
+        data = ''
+        new_data = self.socket.recv(4096).decode()
+        if new_data:
+            data += new_data
+        try:
+            ret = parse_json(data)
+        except ValueError:
+            ret = None
+        return ret
+    
+    def run(self):
+        """Runs the main loop for listing for messages from the server, and handling the function calls sent.
+            Will continue running until the server sends an end function call
+        """
+        tournament_running = True
+        while tournament_running:
+            data = self.listen_for_data()
+            if data:
+                tournament_running = self.handle_function_call(data[0], data[1])
+            time.sleep(.1)
+
+def get_command_line_args():
+    """Returns a 3-tuple with the command line arguments
+
+    Output:
+    (number of clients, port, ip_address)
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('num_clients', type=int)
+    parser.add_argument('port', type=int)
+    parser.add_argument('address', nargs="?", default=DEFAULT_IP)
+    values = parser.parse_args()
+    return values.num_clients, values.port, values.address
+
+def client_thread_routine(port, address):
+    """Runs a routine of creating a Client for a server at the specified port and address
+    """
+    client = Client(port, address, DEFAULT_NAME)
+    try:
+        client.connect(port, address)
+    except ConnectionRefusedError:
+        return
+    client.run()
+
+if __name__ == '__main__':
+    num_clients, port, address = get_command_line_args()
+
+    threads = []
+    
+    for i in range(num_clients):
+        new_thread = Thread(target=client_thread_routine, args=(port, address))
+        threads.append(new_thread)
+        new_thread.start()
+    for thread in threads:
+        thread.join()

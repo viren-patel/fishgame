@@ -1,0 +1,41 @@
+#!/usr/bin/python3
+from argparse import ArgumentParser
+
+"""
+print_result - Prints the provided word either 20 or an infinite number of times, depending on the value of limit.
+
+Parameters:
+
+word: str - String that will be printed to stdout
+limit: bool - If True, only print word 20 times. Else, print infinite # of times.
+"""
+def print_result(word: str, limit: bool):
+    if limit:
+        print((word + "\n") * 20, end = "")
+    else:
+        while True:
+            print(word)
+
+
+"""
+add_args - Adds all necessary args to the provided ArgParser
+
+Parameters:
+
+parser: ArgumentParser - Parser that arguments will be added to.
+"""
+def add_args(parser: ArgumentParser):
+    parser.add_argument("-limit", action="store_true", help="Limits the # of times the final string is printed to 20.")
+    parser.add_argument("words", help="words that will be printed to stdout", nargs='*', type=str)
+    return parser
+
+
+if __name__ == "__main__":
+    parser = add_args(ArgumentParser())
+    args = parser.parse_args()
+    limit = args.limit
+    words = args.words
+    """If no arguments are provided, print "hello world"""""
+    if not args.words:
+        words = ["hello", "world"]
+    print_result(' '.join(words), limit)

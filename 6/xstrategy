@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.abspath('../Fish/Common'))
+sys.path.append(os.path.abspath('../Fish'))
+from Common.state import State, Game_Phase
+
+from Common.game_tree import GameTreeNode
+from Player.strategy import get_optimal_action
+import json
+
+if __name__ == "__main__":
+    depth_state = json.load(sys.stdin)
+    depth = depth_state[0]
+    state_json = depth_state[1]
+    state = State(state_json['players'], state_json['board'])
+    state.game_phase = Game_Phase.PLAYING
+    node = GameTreeNode(state)
+    best_move = get_optimal_action(node, depth=depth)
+
+    print(json.dumps(best_move))

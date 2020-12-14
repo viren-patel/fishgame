@@ -1,0 +1,55 @@
+#!/usr/bin/python3
+
+import socketserver as SocketServer
+import sys
+import json
+
+class TCPServerHandler(SocketServer.BaseRequestHandler):
+
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        self.data = self.request.recv(10000).decode("utf-8").lstrip()
+        parsed_data = list(self.parse_json(self.data))
+        count = len(parsed_data)
+        first_object = {
+            "count": count,
+            "seq": parsed_data
+        }
+        reversed_list = [str(count)]
+        reversed_list.extend(parsed_data[::-1])
+        second_object_string = "[{0}]".format(', '.join(map(str, reversed_list)))
+        return_data = json.dumps(first_object) + "\n" + second_object_string + "\n"
+        self.request.sendall(return_data.encode())
+
+    def finish(self):
+        self.request.close()
+
+    def parse_json(self, data: str):
+        decoder = json.JSONDecoder()
+        ##Strip whitespace from left side
+        clean_data = data.lstrip()
+        while clean_data:
+            try:
+                val, new_idx = decoder.raw_decode(clean_data, idx=0)
+            except json.JSONDecodeError as e:
+                print(e)
+                raise ValueError("Unable to parse json. Please verify that the provided string is well formed JSON.")
+            ##Set clean_data to everything after the latest index read
+            clean_data = clean_data[new_idx:].lstrip()
+
+            yield val
+
+
+if __name__ == "__main__":
+    port = 4567
+    if len(sys.argv) > 2 :
+        raise ValueError("Must provide one integer argument, representing the port # that this program listens to")
+    elif len(sys.argv) == 2:
+        port = int(sys.argv[1])
+        if not port >= 3000 or not port <= 65535:
+            raise ValueError("Must provide positive integer argument between 3000 and 65535")
+
+    with SocketServer.TCPServer(("127.0.0.1", port), TCPServerHandler) as server:
+        server.timeout = 3
+        server.handle_request()
+

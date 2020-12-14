@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.abspath('../Fish/Common'))
+from board import Board
+from tkinter import *
+import json
+
+if __name__ == "__main__":
+    # raw_data = sys.stdin.read()
+    # input = list(parse_json(raw_data))
+    # if len(input) > 1:
+    #     raise ValueError("Invalid game state")
+    # input = input[0]
+    board_posn = json.load(sys.stdin)
+    player_pos = board_posn['position']
+    tiles = board_posn['board']
+    board = Board(tiles)
+    print(json.dumps(len(board.reachable_spaces(player_pos[0], player_pos[1]))))

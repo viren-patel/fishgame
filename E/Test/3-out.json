@@ -1,0 +1,2 @@
+{"count": 5, "seq": [true, null, false, true, 123]}
+[5, 123, True, False, None, True]

@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+
+from tkinter import *
+window = Tk()
+
+#Function for closing window after hexagon is clicked
+def click(event):
+    window.destroy()
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        raise ValueError("Must Provide One Positive Integer Argument")
+    elif not sys.argv[1].isdigit() or sys.argv[1] == "0":
+        raise ValueError("Must Provide One Positive Integer Argument")
+    size = int(sys.argv[1])
+
+    draw = Canvas(window, width=size *5, height=size * 4,scrollregion=(0,0,size *5,size *4))
+    window.geometry("500x500")
+
+    y= Scrollbar (window, orient = VERTICAL)
+    y.pack( side = RIGHT, fill = Y )
+    y.config(command = draw.yview )
+
+    x= Scrollbar (window, orient = HORIZONTAL)
+    x.pack( side = BOTTOM, fill = X )
+    x.config(command = draw.xview )
+
+    draw.create_polygon(0, size, size, 0, size * 2, 0, size * 3, size, size * 2, size * 2, size, size * 2, tags = "hexagon")
+    draw.tag_bind("hexagon", "<Button-1>", click)
+    draw.config(yscrollcommand=y.set,xscrollcommand=x.set)
+    draw.pack(fill = BOTH, expand = True)
+    window.mainloop()

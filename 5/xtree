@@ -1,0 +1,54 @@
+#!/usr/bin/python3
+
+import sys
+import os
+sys.path.append(os.path.abspath('../Fish/Common'))
+sys.path.append(os.path.abspath('../Fish'))
+from Common.game_tree import GameTreeNode
+from Player.strategy import tiebreak
+from Common.state import State, Game_Phase
+from tkinter import *
+import json
+
+if __name__ == "__main__":
+    # raw_data = sys.stdin.read()
+    # input = list(parse_json(raw_data))
+    # if len(input) > 1:
+    #     raise ValueError("Invalid game state")
+    # input = input[0]
+    # state = input['state']
+    # from_pos = input['from']
+    # to_pos = input['to']
+
+    move_response_json = json.load(sys.stdin)
+    state_json = move_response_json['state']
+    from_pos = move_response_json['from']
+    to_pos = move_response_json['to']
+    state = State(state_json['players'], state_json['board'])
+    state.game_phase = Game_Phase.PLAYING
+
+
+
+    node = GameTreeNode(state)
+    state = node.generate_successor([(from_pos[0], from_pos[1]), (to_pos[0],to_pos[1])])
+    # window = Tk()
+    # draw = Canvas(window, width=50 * 5, height=50 * 4)
+    # window.geometry("500x500")
+    # state.draw(draw, 150)
+
+    # draw.pack(fill = BOTH, expand = True)
+    # window.mainloop()
+    reachable_from_tile = state.board.reachable_spaces(to_pos[0], to_pos[1], depth = 1)
+    moves = []
+    for penguin in state.get_players()[state.get_turn_idx()].get_penguin_locations():
+        for tile_coord in reachable_from_tile:
+            if state.valid_move(penguin, tile_coord):
+                moves.append([penguin, tile_coord])
+    ret = None
+    if len(moves) == 1:
+        ret = [moves[0][0], moves[0][1]]
+    elif len(moves) == 0:
+        ret = False
+    else:
+        ret = tiebreak(moves)
+    print(json.dumps(ret))
